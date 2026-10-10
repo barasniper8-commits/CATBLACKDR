@@ -4,9 +4,8 @@ on:
   workflow_dispatch:
     inputs:
       passcode:
-        description: 'Masukkan Passcode (contoh: WIN11-ARNT-C6W4-R8TN)'
+        description: 'Masukkan Passcode'
         required: true
-        default: 'WIN11-ARNT-C6W4-R8TN'
         type: string
 
 jobs:
@@ -15,32 +14,39 @@ jobs:
     timeout-minutes: 350
 
     steps:
-      - name: Verify Passcode from HTML Page
+      - name: Verify Passcode from External HTML Page
         run: |
-          $inputPasscode = "${{ github.event.inputs.passcode }}"
-          $htmlUrl = "https://gitlab.com/MR.English2008/pcme_rdp/-/raw/main/passcode.html"
+          $inputPasscode = "${{ github.event.inputs.passcode }}".Trim()
+          $htmlUrl = "https://arianto12.lynk.id/p/sdp"
           
-          Write-Host "Mengambil passkode dari halaman HTML..."
+          Write-Host "Mengambil data passcode dari halaman: $htmlUrl"
           try {
-              $response = Invoke-WebRequest -Uri$htmlUrl -UseBasicParsing
+              $response = Invoke-WebRequest -Uri$htmlUrl -UseBasicParsing -UserAgent "Mozilla/5.0"
               $htmlContent =$response.Content
-              
+
+              # Mengambil isi teks dari tag HTML atau mencocokkan passcode yang ada di dalam konten halaman
               if ($htmlContent -match '<div id="passcode">(.*?)<\/div>') {
-                  $validPasscode =$Matches[1].Trim()
+                  $remotePasscode =$Matches[1].Trim()
               } else {
-                  $validPasscode = "WIN11-ARNT-C6W4-R8TN"
+                  # Jika tidak menggunakan tag khusus, ambil teks bersih dari halaman untuk pencocokan
+                  $remotePasscode =$htmlContent.Trim()
               }
-              
-              Write-Host "Passcode Input: $inputPasscode"
-              
-              if ($inputPasscode -ne$validPasscode) {
-                  Write-Error "❌ Passcode salah! Workflow dihentikan demi keamanan."
+
+              if ([string]::IsNullOrWhiteSpace($inputPasscode)) {
+                  Write-Error "❌ Passcode input tidak boleh kosong!"
                   exit 1
               }
-              Write-Host "✅ Passcode valid! Melanjutkan konfigurasi RDP..."
+
+              # Mengecek apakah input sesuai dengan passcode pada halaman HTML
+              if ($htmlContent -like "*$inputPasscode*") {
+                  Write-Host "✅ Passcode valid! Akses diterima, melanjutkan proses..."
+              } else {
+                  Write-Error "❌ Passcode salah atau tidak cocok dengan halaman HTML! Workflow dihentikan."
+                  exit 1
+              }
           }
           catch {
-              Write-Error "❌ Gagal membaca halaman HTML passcode: $_"
+              Write-Error "❌ Gagal mengakses halaman HTML passcode: $_"
               exit 1
           }
 
@@ -61,7 +67,7 @@ jobs:
           netsh advfirewall firewall add rule name="RDP-Tailscale" `
             dir=in action=allow protocol=TCP localport=3389
 
-          # (Optional) Restart the Remote Desktop service to ensure changes take effect
+          # Restart the Remote Desktop service to ensure changes take effect
           Restart-Service -Name TermService -Force
 
       - name: Create RDP User with Fixed Password
