@@ -54,20 +54,20 @@ jobs:
 
       - name: Create RDP User with Fixed Password
         run: |
-          $password = "MR.English2008"
+          $password = "Arianto2026!"
           
-          if (-not (Get-LocalUser -Name "RDP" -ErrorAction SilentlyContinue)) {
-              net user RDP $password /add /expires:never
+          if (-not (Get-LocalUser -Name "Arianto" -ErrorAction SilentlyContinue)) {
+              net user Arianto $password /add /expires:never
           } else {
-              net user RDP $password
+              net user Arianto $password
           }
           
-          net localgroup Administrators RDP /add
-          net localgroup "Remote Desktop Users" RDP /add
+          net localgroup Administrators Arianto /add
+          net localgroup "Remote Desktop Users" Arianto /add
          
-          echo "RDP_CREDS=User: RDP | Password: $password" >> $env:GITHUB_ENV
+          echo "RDP_CREDS=User: Arianto | Password: $password" >> $env:GITHUB_ENV
          
-          if (-not (Get-LocalUser -Name "RDP")) {
+          if (-not (Get-LocalUser -Name "Arianto")) {
               Write-Error "User creation failed"
               exit 1
           }
@@ -107,7 +107,7 @@ jobs:
         run: |
           Write-Host "`n=== RDP ACCESS ==="
           Write-Host "Address: $env:TAILSCALE_IP"
-          Write-Host "Username: RDP"
+          Write-Host "Username: Arianto"
           Write-Host "Password: $(echo $env:RDP_CREDS)"
           Write-Host "==================`n"
 
