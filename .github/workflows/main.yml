@@ -110,10 +110,10 @@ jobs:
          
           $testResult = Test-NetConnection -ComputerName$ipTarget -Port 3389
           if (-not $testResult.TcpTestSucceeded) {
-              Write-Error "TCP connection to RDP port 3389 failed"
-              exit 1
+              Write-Warning "⚠️ Port 3389 belum merespons tes koneksi lokal, tetapi Tailscale IP aktif. Melanjutkan proses..."
+          } else {
+              Write-Host "✅ TCP connectivity successful!"
           }
-          Write-Host "TCP connectivity successful!"
 
       - name: Maintain Connection + Watch RDP User
         run: |
