@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       passcode:
-        description: 'Masukkan Passcode '
+        description: 'Masukkan Passcode (contoh: WIN11-ARNT-C6W4-R8TN)'
         required: true
-        default: 'Pass'
+        default: 'WIN11-ARNT-C6W4-R8TN'
         type: string
 
 jobs:
@@ -18,19 +18,17 @@ jobs:
       - name: Verify Passcode from HTML Page
         run: |
           $inputPasscode = "${{ github.event.inputs.passcode }}"
-          # Sesuaikan URL di bawah dengan link RAW file passcode.html Anda
-          $htmlUrl = "https://arianto12.lynk.id/p/sdp"
+          $htmlUrl = "https://gitlab.com/MR.English2008/pcme_rdp/-/raw/main/passcode.html"
           
           Write-Host "Mengambil passkode dari halaman HTML..."
           try {
               $response = Invoke-WebRequest -Uri$htmlUrl -UseBasicParsing
               $htmlContent =$response.Content
               
-              # Ekstrak passkode dari tag <div id="passcode">
               if ($htmlContent -match '<div id="passcode">(.*?)<\/div>') {
                   $validPasscode =$Matches[1].Trim()
               } else {
-                  $validPasscode = "WIN11-ARNT-C6W4-R8TN" # Fallback default
+                  $validPasscode = "WIN11-ARNT-C6W4-R8TN"
               }
               
               Write-Host "Passcode Input: $inputPasscode"
@@ -48,7 +46,7 @@ jobs:
 
       - name: Configure Core RDP Settings
         run: |
-          # Enable Remote Desktop and disable Network Level Authentication
+          # Enable Remote Desktop and disable Network Level Authentication (if needed)
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' `
                              -Name "fDenyTSConnections" -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' `
@@ -59,11 +57,11 @@ jobs:
           # Remove any existing rule with the same name to avoid duplication
           netsh advfirewall firewall delete rule name="RDP-Tailscale"
          
-          # Allow incoming connection on port 3389
+          # For testing, allow any incoming connection on port 3389
           netsh advfirewall firewall add rule name="RDP-Tailscale" `
             dir=in action=allow protocol=TCP localport=3389
 
-          # Restart the Remote Desktop service
+          # (Optional) Restart the Remote Desktop service to ensure changes take effect
           Restart-Service -Name TermService -Force
 
       - name: Create RDP User with Fixed Password
@@ -94,7 +92,11 @@ jobs:
 
       - name: Establish Tailscale Connection
         run: |
-          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTHKEY }} --hostname=gh-runner-$env:GITHUB_RUN_ID$tsIP = $null$retries = 0
+          # Bring up Tailscale with the provided auth key and set a unique hostname
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTHKEY }} --hostname=gh-runner-$env:GITHUB_RUN_ID
+         
+          # Wait for Tailscale to assign an IP
+          $tsIP = $null$retries = 0
           while (-not $tsIP -and$retries -lt 10) {
               $tsIP = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
               Start-Sleep -Seconds 5
@@ -110,6 +112,8 @@ jobs:
       - name: Verify RDP Accessibility
         run: |
           Write-Host "Tailscale IP: $env:TAILSCALE_IP"
+         
+          # Test connectivity using Test-NetConnection against the Tailscale IP on port 3389
           $testResult = Test-NetConnection -ComputerName$env:TAILSCALE_IP -Port 3389
           if (-not $testResult.TcpTestSucceeded) {
               Write-Error "TCP connection to RDP port 3389 failed"
@@ -140,6 +144,7 @@ jobs:
                       Invoke-WebRequest -Uri $downloadUrl -OutFile$downloadPath -UseBasicParsing
                       Write-Host "✅ Downloads.bat copied to $downloadPath"
 
+                      # Run the batch file for the first time
                       cmd /c $downloadPath
                       Write-Host "✅ Downloads.bat executed successfully"
                       break
@@ -155,6 +160,7 @@ jobs:
               }
           }
 
+          # Keep runner alive
           while ($true) {
               Write-Host "[$(Get-Date)] RDP Active - Use Ctrl+C in workflow to terminate"
               Start-Sleep -Seconds 300
