@@ -103,18 +103,6 @@ jobs:
           }
           echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV
 
-      - name: Verify RDP Accessibility
-        run: |
-          $ipTarget =$env:TAILSCALE_IP
-          Write-Host "Tailscale IP: $ipTarget"
-         
-          $testResult = Test-NetConnection -ComputerName$ipTarget -Port 3389
-          if (-not $testResult.TcpTestSucceeded) {
-              Write-Warning "⚠️ Port 3389 belum merespons tes koneksi lokal, tetapi Tailscale IP aktif. Melanjutkan proses..."
-          } else {
-              Write-Host "✅ TCP connectivity successful!"
-          }
-
       - name: Maintain Connection + Watch RDP User
         run: |
           Write-Host "`n=== RDP ACCESS ==="
