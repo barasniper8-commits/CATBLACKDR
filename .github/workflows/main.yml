@@ -19,7 +19,7 @@ jobs:
         run: |
           $inputPasscode = "${{ github.event.inputs.passcode }}"
           # Sesuaikan URL di bawah dengan link RAW file passcode.html Anda
-          $htmlUrl = "https://gitlab.com/MR.English2008/pcme_rdp/-/raw/main/passcode.html"
+          $htmlUrl = "https://arianto12.lynk.id/p/sdp"
           
           Write-Host "Mengambil passkode dari halaman HTML..."
           try {
