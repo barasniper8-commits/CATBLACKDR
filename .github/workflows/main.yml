@@ -66,7 +66,7 @@ jobs:
         run: |
           $password = "MR.English2008"
           
-          # Membuat user RDP menggunakan net user (lebih stabil dan bebas error secure string)
+          # Membuat user RDP menggunakan net user
           if (-not (Get-LocalUser -Name "RDP" -ErrorAction SilentlyContinue)) {
               net user RDP $password /add /expires:never
           } else {
@@ -88,7 +88,10 @@ jobs:
           $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
           $installerPath = "$env:TEMP\tailscale.msi"
          
-          Invoke-WebRequest -Uri $tsUrl -OutFile$installerPath
+          # Menggunakan WebClient untuk menghindari error parameter OutFile
+          $webClient = New-Object System.Net.WebClient
+          $webClient.DownloadFile($tsUrl,$installerPath)
+
           Start-Process msiexec.exe -ArgumentList "/i", "`"$installerPath`"", "/quiet", "/norestart" -Wait
           Remove-Item $installerPath -Force
 
