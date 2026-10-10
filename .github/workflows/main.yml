@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       passcode:
-        description: 'Masukkan Passcode (contoh: WIN11-ARNT-C6W4-R8TN)'
+        description: 'Masukkan Passcode '
         required: true
         default: 'Pass'
         type: string
