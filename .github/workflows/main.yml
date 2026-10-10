@@ -6,7 +6,7 @@ on:
       passcode:
         description: 'Masukkan Passcode (contoh: WIN11-ARNT-C6W4-R8TN)'
         required: true
-        default: 'WIN11-ARNT-C6W4-R8TN'
+        default: 'Pass'
         type: string
 
 jobs:
