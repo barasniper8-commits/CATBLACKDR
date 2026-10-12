@@ -18,7 +18,7 @@ jobs:
         run: |
           $inputPasscode = "${{ github.event.inputs.passcode }}".Trim()
           
-          Write-Host "Mengambil data passcode dari halaman: https://arianto12.lynk.id/p/sdp"
+          Write-Host "Mengambil data passcode dari halaman: https://arianto12.lynk.id/p/ganjeng"
           try {
               $response = Invoke-WebRequest -Uri "https://arianto12.lynk.id/p/sdp" -UseBasicParsing -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
               $htmlContent =$response.Content
