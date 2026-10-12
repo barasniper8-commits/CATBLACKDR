@@ -12,13 +12,10 @@ jobs:
       - name: Configure Core RDP Settings
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
-          
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
-          
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
 
           netsh advfirewall firewall delete rule name="RDP-Tailscale"
-          
           netsh advfirewall firewall add rule name="RDP-Tailscale" dir=in action=allow protocol=TCP localport=3389
 
           Restart-Service -Name TermService -Force
@@ -34,7 +31,6 @@ jobs:
           }
           
           net localgroup Administrators RDP /add
-          
           net localgroup "Remote Desktop Users" RDP /add
          
           echo "RDP_CREDS=User: RDP | Password: $password" >> $env:GITHUB_ENV
@@ -47,15 +43,12 @@ jobs:
       - name: Install Tailscale
         run: |
           $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
-          
           $installerPath = "$env:TEMP\tailscale.msi"
          
           $webClient = New-Object System.Net.WebClient
-          
           $webClient.DownloadFile($tsUrl,$installerPath)
 
           Start-Process msiexec.exe -ArgumentList "/i", "`"$installerPath`"", "/quiet", "/norestart" -Wait
-          
           Remove-Item $installerPath -Force
 
       - name: Establish Tailscale Connection
@@ -64,7 +57,7 @@ jobs:
         run: |
           & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey="$env:TS_AUTHKEY" --hostname="gh-runner-$env:GITHUB_RUN_ID"
          
-          $tsIP = $null$retries = 0
+          $tsIP = $null; $retries = 0
           
           while (-not $tsIP -and$retries -lt 10) {
               $tsIP = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
