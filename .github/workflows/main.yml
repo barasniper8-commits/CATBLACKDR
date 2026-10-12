@@ -1,26 +1,19 @@
-      - name: "2. Create RDP User"
+name: Win 11 Tailscale RDP
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  secure-rdp:
+    runs-on: windows-2022
+    timeout-minutes: 350
+
+    steps:
+      - name: Configure Core RDP Settings
         shell: powershell
         run: |
           $ErrorActionPreference = "Stop"
-
-          $password = "GANTI_DENGAN_PASSWORD_KAMU"
-          $securePassword = ConvertTo-SecureString $password -AsPlainText -Force
-
-          $user = Get-LocalUser -Name "RDP" -ErrorAction SilentlyContinue
-
-          if (-not $user) {
-            New-LocalUser -Name "RDP" `
-              -Password $securePassword `
-              -PasswordNeverExpires `
-              -AccountNeverExpires
-          } else {
-            Set-LocalUser -Name "RDP" -Password $securePassword
-          }
-
-          Add-LocalGroupMember -Group "Administrators" `
-            -Member "RDP" -ErrorAction SilentlyContinue
-
-          Add-LocalGroupMember -Group "Remote Desktop Users" `
-            -Member "RDP" -ErrorAction SilentlyContinue
-
-          Write-Host "Akun RDP berhasil disiapkan."
+          Write-Host "Memulai konfigurasi Windows RDP"
