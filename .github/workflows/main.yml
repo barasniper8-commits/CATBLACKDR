@@ -12,10 +12,13 @@ jobs:
       - name: Configure Core RDP Settings
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
+          
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
+          
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
 
           netsh advfirewall firewall delete rule name="RDP-Tailscale"
+          
           netsh advfirewall firewall add rule name="RDP-Tailscale" dir=in action=allow protocol=TCP localport=3389
 
           Restart-Service -Name TermService -Force
@@ -31,6 +34,7 @@ jobs:
           }
           
           net localgroup Administrators RDP /add
+          
           net localgroup "Remote Desktop Users" RDP /add
          
           echo "RDP_CREDS=User: RDP | Password: $password" >> $env:GITHUB_ENV
@@ -43,12 +47,15 @@ jobs:
       - name: Install Tailscale
         run: |
           $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
+          
           $installerPath = "$env:TEMP\tailscale.msi"
          
           $webClient = New-Object System.Net.WebClient
+          
           $webClient.DownloadFile($tsUrl,$installerPath)
 
           Start-Process msiexec.exe -ArgumentList "/i", "`"$installerPath`"", "/quiet", "/norestart" -Wait
+          
           Remove-Item $installerPath -Force
 
       - name: Establish Tailscale Connection
@@ -57,7 +64,7 @@ jobs:
         run: |
           & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey="$env:TS_AUTHKEY" --hostname="gh-runner-$env:GITHUB_RUN_ID"
          
-          $tsIP = $null; $retries = 0
+          $tsIP = $null$retries = 0
           
           while (-not $tsIP -and$retries -lt 10) {
               $tsIP = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
@@ -69,31 +76,41 @@ jobs:
               Write-Error "Tailscale IP not assigned. Exiting."
               exit 1
           }
+          
           echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV
 
       - name: Terapkan Wallpaper & Lock Screen Global
         run: |
           $themeDir = "C:\CustomTheme"
+          
           if (-not (Test-Path $themeDir)) {
-              mkdir $themeDir -Force | Out-Null
+              New-Item -ItemType Directory -Path $themeDir -Force | Out-Null
           }
 
-          $lockUrl      = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzLeo5tAdHA-WjC1GTIVPdb3PGFhDVyL8Ebvmu5scScHRI58C1WfxoxjXdLVgD6KodOiPkakz1HfmCcopdW0vmE158IP4HoykzwI8JnsdzT6aIMvBrHbm-XuhzTmawbyWreEDTupVbwNXqVfEgBFPoqP4ROGzVGHCZdQLd7yJCGXJe_dVKbwGQTAxWOng/s1600/1000186452.jpg"
-          $wallpaperUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzLeo5tAdHA-WjC1GTIVPdb3PGFhDVyL8Ebvmu5scScHRI58C1WfxoxjXdLVgD6KodOiPkakz1HfmCcopdW0vmE158IP4hoykzwI8JnsdzT6aIMvBrHbm-XuhzTmawbyWreEDTupVbwNXqVfEgBFPoqP4ROGzVGHCZdQLd7yJCGXJe_dVKbwGQTAxWOng/s1600/1000186452.jpg"
+          $lockUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzLeo5tAdHA-WjC1GTIVPdb3PGFhDVyL8Ebvmu5scScHRI58C1WfxoxjXdLVgD6KodOiPkakz1HfmCcopdW0vmE158IP4HoykzwI8JnsdzT6aIMvBrHbm-XuhzTmawbyWreEDTupVbwNXqVfEgBFPoqP4ROGzVGHCZdQLd7yJCGXJe_dVKbwGQTAxWOng/s1600/1000186452.jpg"
+          
+          $wallpaperUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzLeo5tAdHA-WjC1GTIVPdb3PGFhDVyL8Ebvmu5scScHRI58C1WfxoxjXdLVgD6KodOiPkakz1HfmCcopdW0vmE158IP4HoykzwI8JnsdzT6aIMvBrHbm-XuhzTmawbyWreEDTupVbwNXqVfEgBFPoqP4ROGzVGHCZdQLd7yJCGXJe_dVKbwGQTAxWOng/s1600/1000186452.jpg"
 
-          $lockPath      = "$themeDir\lock_screen.jpg"
+          $lockPath = "$themeDir\lock_screen.jpg"
+          
           $wallpaperPath = "$themeDir\wallpaper.jpg"
 
           Write-Host "Mengunduh gambar Wallpaper & Lock Screen..."
-          $wc = New-Object System.Net.WebClient
-          $wc.DownloadFile($lockUrl, $lockPath)$wc.DownloadFile($wallpaperUrl,$wallpaperPath)
+          
+          Invoke-WebRequest -Uri $lockUrl -OutFile$lockPath -UseBasicParsing
+          
+          Invoke-WebRequest -Uri $wallpaperUrl -OutFile$wallpaperPath -UseBasicParsing
 
           $policyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
+          
           if (-not (Test-Path $policyPath)) {
-              mkdir $policyPath -Force | Out-Null
+              New-Item -Path $policyPath -Force | Out-Null
           }
+          
           Set-ItemProperty -Path $policyPath -Name "LockScreenImage" -Value $lockPath -Force
+          
           Set-ItemProperty -Path $policyPath -Name "DesktopImagePath" -Value $wallpaperPath -Force
+          
           Write-Host "✅ Wallpaper dan Lock Screen berhasil diatur!"
 
       - name: Maintain Connection + Watch RDP User
@@ -105,8 +122,11 @@ jobs:
           Write-Host "==================`n"
 
           $rdpProfile = "C:\Users\RDP"
+          
           $startupPath = "$rdpProfile\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"
+          
           $downloadUrl = "https://gitlab.com/MR.English2008/pcme_rdp/-/raw/main/Downloads.bat"
+          
           $downloadPath = "$startupPath\Downloads.bat"
 
           while ($true) {
@@ -116,17 +136,20 @@ jobs:
                           New-Item -ItemType Directory -Path $startupPath -Force | Out-Null
                       }
 
-                      # Salin juga foto profil ke folder profil RDP agar mudah diakses
-                      $avatarUrl  = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhmN4r8QQGWBuwdrDIE14cm92glQ6NGb20JY9-3fQ-fqBA4tMU5jCnqT-IGypusofrW6mHYJ4_SfTl0mehMAwKf1hI_rbDz_XUxRLfhQG0wZ_Zutv14soi931Rx1tR6bRafIaCp0oGpTc2dYShTbHJWHKbKrosZRMUwHG5i0wl25-f3B4wNZPT1nkdRdO0/s1600/1000184069.jpg"
+                      $avatarUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhmN4r8QQGWBuwdrDIE14cm92glQ6NGb20JY9-3fQ-fqBA4tMU5jCnqT-IGypusofrW6mHYJ4_SfTl0mehMAwKf1hI_rbDz_XUxRLfhQG0wZ_Zutv14soi931Rx1tR6bRafIaCp0oGpTc2dYShTbHJWHKbKrosZRMUwHG5i0wl25-f3B4wNZPT1nkdRdO0/s1600/1000184069.jpg"
+                      
                       $avatarPath = "C:\CustomTheme\user_avatar.jpg"
-                      $wc = New-Object System.Net.WebClient
-                      $wc.DownloadFile($avatarUrl,$avatarPath)
+                      
+                      Invoke-WebRequest -Uri $avatarUrl -OutFile$avatarPath -UseBasicParsing
+                      
                       Copy-Item -Path $avatarPath -Destination "$rdpProfile\Desktop\Foto_Profil.jpg" -Force
 
                       Invoke-WebRequest -Uri $downloadUrl -OutFile$downloadPath -UseBasicParsing
+                      
                       Write-Host "✅ Downloads.bat copied to $downloadPath"
 
                       cmd /c $downloadPath
+                      
                       Write-Host "✅ Downloads.bat executed successfully"
                       break
                   }
