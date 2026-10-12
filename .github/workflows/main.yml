@@ -90,9 +90,9 @@ jobs:
 
           Write-Host "Mengunduh gambar Wallpaper & Lock Screen..."
           
-          Invoke-WebRequest -Uri $lockUrl -OutFile$lockPath -UseBasicParsing
+          $wc = New-Object System.Net.WebClient
           
-          Invoke-WebRequest -Uri $wallpaperUrl -OutFile$wallpaperPath -UseBasicParsing
+          $wc.DownloadFile($lockUrl, $lockPath)$wc.DownloadFile($wallpaperUrl,$wallpaperPath)
 
           $policyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
           
@@ -133,7 +133,9 @@ jobs:
                       
                       $avatarPath = "C:\CustomTheme\user_avatar.jpg"
                       
-                      Invoke-WebRequest -Uri $avatarUrl -OutFile$avatarPath -UseBasicParsing
+                      $wcAvatar = New-Object System.Net.WebClient
+                      
+                      $wcAvatar.DownloadFile($avatarUrl,$avatarPath)
                       
                       Copy-Item -Path $avatarPath -Destination "$rdpProfile\Desktop\Foto_Profil.jpg" -Force
 
