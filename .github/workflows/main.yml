@@ -71,6 +71,41 @@ jobs:
           }
           echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV
 
+      - name: Customize Profile Picture, Lock Screen, and Wallpaper
+        run: |
+          $themeDir = "C:\CustomTheme"
+          if (-not (Test-Path $themeDir)) { New-Item -ItemType Directory -Path$themeDir -Force | Out-Null }
+
+          $avatarUrl    = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhmN4r8QQGWBuwdrDIE14cm92glQ6NGb20JY9-3fQ-fqBA4tMU5jCnqT-IGypusofrW6mHYJ4_SfTl0mehMAwKf1hI_rbDz_XUxRLfhQG0wZ_Zutv14soi931Rx1tR6bRafIaCp0oGpTc2dYShTbHJWHKbKrosZRMUwHG5i0wl25-f3B4wNZPT1nkdRdO0/s1600/1000184069.jpg"
+          $lockUrl      = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzLeo5tAdHA-WjC1GTIVPdb3PGFhDVyL8Ebvmu5scScHRI58C1WfxoxjXdLVgD6KodOiPkakz1HfmCcopdW0vmE158IP4HoykzwI8JnsdzT6aIMvBrHbm-XuhzTmawbyWreEDTupVbwNXqVfEgBFPoqP4ROGzVGHCZdQLd7yJCGXJe_dVKbwGQTAxWOng/s1600/1000186452.jpg"
+          $wallpaperUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzLeo5tAdHA-WjC1GTIVPdb3PGFhDVyL8Ebvmu5scScHRI58C1WfxoxjXdLVgD6KodOiPkakz1HfmCcopdW0vmE158IP4HoykzwI8JnsdzT6aIMvBrHbm-XuhzTmawbyWreEDTupVbwNXqVfEgBFPoqP4ROGzVGHCZdQLd7yJCGXJe_dVKbwGQTAxWOng/s1600/1000186452.jpg"
+
+          $avatarPath    = "$themeDir\user_avatar.jpg"
+          $lockPath      = "$themeDir\lock_screen.jpg"
+          $wallpaperPath = "$themeDir\wallpaper.jpg"
+
+          Write-Host "Mengunduh gambar kustom..."
+          Invoke-WebRequest -Uri $avatarUrl -OutFile$avatarPath -UseBasicParsing
+          Invoke-WebRequest -Uri $lockUrl -OutFile$lockPath -UseBasicParsing
+          Invoke-WebRequest -Uri $wallpaperUrl -OutFile$wallpaperPath -UseBasicParsing
+
+          # Set Default Wallpaper & Lock Screen via Group Policy/Registry
+          $personalizationReg = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
+          if (-not (Test-Path $personalizationReg)) { New-Item -Path$personalizationReg -Force | Out-Null }
+          Set-ItemProperty -Path $personalizationReg -Name "LockScreenImage" -Value $lockPath -Force
+          Set-ItemProperty -Path $personalizationReg -Name "DesktopImagePath" -Value $wallpaperPath -Force
+
+          # Set User Account Picture (Default System Avatar Replacement)
+          $accountPicturesPath = "C:\ProgramData\Microsoft\User Account Pictures"
+          if (Test-Path $accountPicturesPath) {
+              Copy-Item -Path $avatarPath -Destination "$accountPicturesPath\user.png" -Force
+              Copy-Item -Path $avatarPath -Destination "$accountPicturesPath\user-192.png" -Force
+              Copy-Item -Path $avatarPath -Destination "$accountPicturesPath\user-40.png" -Force
+              Copy-Item -Path $avatarPath -Destination "$accountPicturesPath\user-32.png" -Force
+              Copy-Item -Path $avatarPath -Destination "$accountPicturesPath\user-48.png" -Force
+          }
+          Write-Host "✅ Pengaturan tema dan gambar kustom selesai!"
+
       - name: Maintain Connection + Watch RDP User
         run: |
           Write-Host "`n=== RDP ACCESS ==="
