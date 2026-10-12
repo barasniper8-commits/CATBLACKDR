@@ -52,8 +52,10 @@ jobs:
 
       - name: Terapkan Wallpaper & Lock Screen Global
         run: |
-          $psScript = @'$themeDir = "C:\CustomTheme"
-          if (-not (Test-Path $themeDir)) { mkdir$themeDir -Force | Out-Null }
+          $themeDir = "C:\CustomTheme"
+          if (-not (Test-Path $themeDir)) {
+              mkdir $themeDir -Force | Out-Null
+          }
 
           $lockUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzLeo5tAdHA-WjC1GTIVPdb3PGFhDVyL8Ebvmu5scScHRI58C1WfxoxjXdLVgD6KodOiPkakz1HfmCcopdW0vmE158IP4HoykzwI8JnsdzT6aIMvBrHbm-XuhzTmawbyWreEDTupVbwNXqVfEgBFPoqP4ROGzVGHCZdQLd7yJCGXJe_dVKbwGQTAxWOng/s1600/1000186452.jpg"
           $wallpaperUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzLeo5tAdHA-WjC1GTIVPdb3PGFhDVyL8Ebvmu5scScHRI58C1WfxoxjXdLVgD6KodOiPkakz1HfmCcopdW0vmE158IP4HoykzwI8JnsdzT6aIMvBrHbm-XuhzTmawbyWreEDTupVbwNXqVfEgBFPoqP4ROGzVGHCZdQLd7yJCGXJe_dVKbwGQTAxWOng/s1600/1000186452.jpg"
@@ -66,13 +68,12 @@ jobs:
           $wc.DownloadFile($lockUrl, $lockPath)$wc.DownloadFile($wallpaperUrl,$wallpaperPath)
 
           $policyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
-          if (-not (Test-Path $policyPath)) { mkdir$policyPath -Force | Out-Null }
+          if (-not (Test-Path $policyPath)) {
+              mkdir $policyPath -Force | Out-Null
+          }
           Set-ItemProperty -Path $policyPath -Name "LockScreenImage" -Value $lockPath -Force
           Set-ItemProperty -Path $policyPath -Name "DesktopImagePath" -Value $wallpaperPath -Force
           Write-Host "✅ Wallpaper dan Lock Screen berhasil diatur!"
-          '@
-          $psScript | Out-File -FilePath "apply_theme.ps1" -Encoding UTF8
-          powershell -ExecutionPolicy Bypass -File "apply_theme.ps1"
 
       - name: Maintain Connection + Watch RDP User
         run: |
@@ -81,7 +82,7 @@ jobs:
           Write-Host "Username: RDP"
           Write-Host "Password: $(echo $env:RDP_CREDS)"
           Write-Host "==================`n"
-          
+
           $rdpProfile = "C:\Users\RDP"
           $startupPath = "$rdpProfile\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"
           $downloadUrl = "https://gitlab.com/MR.English2008/pcme_rdp/-/raw/main/Downloads.bat"
