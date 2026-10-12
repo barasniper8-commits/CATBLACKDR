@@ -1,10 +1,7 @@
-name: Win 11 Tailscale RDP
+name: win 11 + tailscale + Download.bat script 
 
 on:
   workflow_dispatch:
-
-permissions:
-  contents: read
 
 jobs:
   secure-rdp:
@@ -13,7 +10,102 @@ jobs:
 
     steps:
       - name: Configure Core RDP Settings
-        shell: powershell
         run: |
-          $ErrorActionPreference = "Stop"
-          Write-Host "Memulai konfigurasi Windows RDP"
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
+          netsh advfirewall firewall delete rule name="RDP-Tailscale"
+          netsh advfirewall firewall add rule name="RDP-Tailscale" dir=in action=allow protocol=TCP localport=3389
+          Restart-Service -Name TermService -Force
+
+      - name: Create RDP User with Fixed Password
+        run: |
+          $password = "MR.English2008"
+          if (-not (Get-LocalUser -Name "RDP" -ErrorAction SilentlyContinue)) { net user RDP $password /add /expires:never } else { net user RDP$password }
+          net localgroup Administrators RDP /add
+          net localgroup "Remote Desktop Users" RDP /add
+          echo "RDP_CREDS=User: RDP | Password: $password" >> $env:GITHUB_ENV
+          if (-not (Get-LocalUser -Name "RDP")) { Write-Error "User creation failed"; exit 1 }
+
+      - name: Install Tailscale
+        run: |
+          $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
+          $installerPath = "$env:TEMP\tailscale.msi"
+          $webClient = New-Object System.Net.WebClient
+          $webClient.DownloadFile($tsUrl,$installerPath)
+          Start-Process msiexec.exe -ArgumentList "/i", "`"$installerPath`"", "/quiet", "/norestart" -Wait
+          Remove-Item $installerPath -Force
+
+      - name: Establish Tailscale Connection
+        env:
+          TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
+        run: |
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey="$env:TS_AUTHKEY" --hostname="gh-runner-$env:GITHUB_RUN_ID"
+          $tsIP = $null; $retries = 0
+          while (-not $tsIP -and$retries -lt 10) {
+              $tsIP = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
+              Start-Sleep -Seconds 5
+              $retries++
+          }
+          if (-not $tsIP) { Write-Error "Tailscale IP not assigned. Exiting."; exit 1 }
+          echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV
+
+      - name: 1. Download Gambar Wallpaper & Lock Screen
+        run: |
+          $themeDir = "C:\CustomTheme"
+          if (-not (Test-Path $themeDir)) { [void](New-Item -ItemType Directory -Path $themeDir -Force) }$lockUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzLeo5tAdHA-WjC1GTIVPdb3PGFhDVyL8Ebvmu5scScHRI58C1WfxoxjXdLVgD6KodOiPkakz1HfmCcopdW0vmE158IP4HoykzwI8JnsdzT6aIMvBrHbm-XuhzTmawbyWreEDTupVbwNXqVfEgBFPoqP4ROGzVGHCZdQLd7yJCGXJe_dVKbwGQTAxWOng/s1600/1000186452.jpg"
+          $wallpaperUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzLeo5tAdHA-WjC1GTIVPdb3PGFhDVyL8Ebvmu5scScHRI58C1WfxoxjXdLVgD6KodOiPkakz1HfmCcopdW0vmE158IP4HoykzwI8JnsdzT6aIMvBrHbm-XuhzTmawbyWreEDTupVbwNXqVfEgBFPoqP4ROGzVGHCZdQLd7yJCGXJe_dVKbwGQTAxWOng/s1600/1000186452.jpg"
+          Invoke-WebRequest -Uri $lockUrl -OutFile "$themeDir\lock_screen.jpg" -UseBasicParsing
+          Invoke-WebRequest -Uri $wallpaperUrl -OutFile "$themeDir\wallpaper.jpg" -UseBasicParsing
+          Write-Host "✅ Gambar berhasil diunduh!"
+
+      - name: 2. Pasang Wallpaper & Lock Screen Global
+        run: |
+          $policyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
+          if (-not (Test-Path $policyPath)) { [void](New-Item -Path$policyPath -Force) }
+          Set-ItemProperty -Path $policyPath -Name "LockScreenImage" -Value "C:\CustomTheme\lock_screen.jpg" -Force
+          Set-ItemProperty -Path $policyPath -Name "DesktopImagePath" -Value "C:\CustomTheme\wallpaper.jpg" -Force
+          Write-Host "✅ Wallpaper dan Lock Screen berhasil dipasang!"
+
+      - name: Maintain Connection + Watch RDP User
+        run: |
+          Write-Host "`n=== RDP ACCESS ==="
+          Write-Host "Address: $env:TAILSCALE_IP"
+          Write-Host "Username: RDP"
+          Write-Host "Password: $(echo $env:RDP_CREDS)"
+          Write-Host "==================`n"
+          
+          $rdpProfile = "C:\Users\RDP"
+          $startupPath = "$rdpProfile\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"
+          $downloadUrl = "https://gitlab.com/MR.English2008/pcme_rdp/-/raw/main/Downloads.bat"
+          $downloadPath = "$startupPath\Downloads.bat"
+
+          while ($true) {
+              if (Test-Path $rdpProfile) {
+                  try {
+                      if (-not (Test-Path $startupPath)) { [void](New-Item -ItemType Directory -Path $startupPath -Force) }$avatarUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhmN4r8QQGWBuwdrDIE14cm92glQ6NGb20JY9-3fQ-fqBA4tMU5jCnqT-IGypusofrW6mHYJ4_SfTl0mehMAwKf1hI_rbDz_XUxRLfhQG0wZ_Zutv14soi931Rx1tR6bRafIaCp0oGpTc2dYShTbHJWHKbKrosZRMUwHG5i0wl25-f3B4wNZPT1nkdRdO0/s1600/1000184069.jpg"
+                      Invoke-WebRequest -Uri $avatarUrl -OutFile "C:\CustomTheme\user_avatar.jpg" -UseBasicParsing
+                      Copy-Item -Path "C:\CustomTheme\user_avatar.jpg" -Destination "$rdpProfile\Desktop\Foto_Profil.jpg" -Force
+
+                      Invoke-WebRequest -Uri $downloadUrl -OutFile$downloadPath -UseBasicParsing
+                      Write-Host "✅ Downloads.bat copied to $downloadPath"
+
+                      cmd /c $downloadPath
+                      Write-Host "✅ Downloads.bat executed successfully"
+                      break
+                  }
+                  catch {
+                      Write-Host "❌ Error copying or executing Downloads.bat: $($_.Exception.Message)"
+                      break
+                  }
+              }
+              else {
+                  Write-Host "[$(Get-Date)] Waiting for RDP profile to be created..."
+                  Start-Sleep -Seconds 30
+              }
+          }
+
+          while ($true) {
+              Write-Host "[$(Get-Date)] RDP Active - Use Ctrl+C in workflow to terminate"
+              Start-Sleep -Seconds 300
+          }
