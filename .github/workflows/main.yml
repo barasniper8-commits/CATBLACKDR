@@ -42,11 +42,13 @@ jobs:
           "%ProgramFiles%\Tailscale\tailscale.exe" up --authkey="%TS_AUTHKEY%" --hostname="gh-runner-%GITHUB_RUN_ID%"
           
           :wait_ip
-          for /f "tokens=*" %%i in ('"%ProgramFiles%\Tailscale\tailscale.exe" ip -4') do set TS_IP=%%i
+          "%ProgramFiles%\Tailscale\tailscale.exe" ip -4 > "%TEMP%\ts_ip.txt" 2>nul
+          set /p TS_IP=<"%TEMP%\ts_ip.txt"
           if "%TS_IP%"=="" (
               timeout /t 5 /nobreak >nul
               goto wait_ip
           )
+          echo Tailscale IP assigned: %TS_IP%
           powershell -Command "echo 'TAILSCALE_IP=%TS_IP%' >> $env:GITHUB_ENV"
 
       - name: Download & Terapkan Wallpaper & Lock Screen
