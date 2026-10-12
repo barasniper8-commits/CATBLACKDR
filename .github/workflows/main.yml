@@ -53,8 +53,12 @@ jobs:
       - name: 1. Download Gambar Wallpaper & Lock Screen
         run: |
           $themeDir = "C:\CustomTheme"
-          if (-not (Test-Path $themeDir)) { [void](New-Item -ItemType Directory -Path $themeDir -Force) }$lockUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzLeo5tAdHA-WjC1GTIVPdb3PGFhDVyL8Ebvmu5scScHRI58C1WfxoxjXdLVgD6KodOiPkakz1HfmCcopdW0vmE158IP4HoykzwI8JnsdzT6aIMvBrHbm-XuhzTmawbyWreEDTupVbwNXqVfEgBFPoqP4ROGzVGHCZdQLd7yJCGXJe_dVKbwGQTAxWOng/s1600/1000186452.jpg"
-          $wallpaperUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzLeo5tAdHA-WjC1GTIVPdb3PGFhDVyL8Ebvmu5scScHRI58C1WfxoxjXdLVgD6KodOiPkakz1HfmCcopdW0vmE158IP4HoykzwI8JnsdzT6aIMvBrHbm-XuhzTmawbyWreEDTupVbwNXqVfEgBFPoqP4ROGzVGHCZdQLd7yJCGXJe_dVKbwGQTAxWOng/s1600/1000186452.jpg"
+          if (-not (Test-Path $themeDir)) { [void](New-Item -ItemType Directory -Path$themeDir -Force) }
+          
+          # Ganti URL di bawah ini dengan tautan gambar langsung yang valid jika diperlukan
+          $lockUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1600"
+          $wallpaperUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1600"
+          
           Invoke-WebRequest -Uri $lockUrl -OutFile "$themeDir\lock_screen.jpg" -UseBasicParsing
           Invoke-WebRequest -Uri $wallpaperUrl -OutFile "$themeDir\wallpaper.jpg" -UseBasicParsing
           Write-Host "✅ Gambar berhasil diunduh!"
@@ -81,7 +85,7 @@ jobs:
           while ($true) {
               if (Test-Path $rdpProfile) {
                   try {
-                      if (-not (Test-Path $startupPath)) { [void](New-Item -ItemType Directory -Path $startupPath -Force) }$avatarUrl = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhmN4r8QQGWBuwdrDIE14cm92glQ6NGb20JY9-3fQ-fqBA4tMU5jCnqT-IGypusofrW6mHYJ4_SfTl0mehMAwKf1hI_rbDz_XUxRLfhQG0wZ_Zutv14soi931Rx1tR6bRafIaCp0oGpTc2dYShTbHJWHKbKrosZRMUwHG5i0wl25-f3B4wNZPT1nkdRdO0/s1600/1000184069.jpg"
+                      if (-not (Test-Path $startupPath)) { [void](New-Item -ItemType Directory -Path $startupPath -Force) }$avatarUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500"
                       Invoke-WebRequest -Uri $avatarUrl -OutFile "C:\CustomTheme\user_avatar.jpg" -UseBasicParsing
                       Copy-Item -Path "C:\CustomTheme\user_avatar.jpg" -Destination "$rdpProfile\Desktop\Foto_Profil.jpg" -Force
 
