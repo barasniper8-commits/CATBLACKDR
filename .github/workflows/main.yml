@@ -61,10 +61,8 @@ jobs:
 
       - name: 2. Pasang Wallpaper & Lock Screen Global
         run: |
-          $policyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
-          if (-not (Test-Path $policyPath)) { [void](New-Item -Path$policyPath -Force) }
-          Set-ItemProperty -Path $policyPath -Name "LockScreenImage" -Value "C:\CustomTheme\lock_screen.jpg" -Force
-          Set-ItemProperty -Path $policyPath -Name "DesktopImagePath" -Value "C:\CustomTheme\wallpaper.jpg" -Force
+          reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization" /v LockScreenImage /t REG_SZ /d "C:\CustomTheme\lock_screen.jpg" /f
+          reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization" /v DesktopImagePath /t REG_SZ /d "C:\CustomTheme\wallpaper.jpg" /f
           Write-Host "✅ Wallpaper dan Lock Screen berhasil dipasang!"
 
       - name: Maintain Connection + Watch RDP User
