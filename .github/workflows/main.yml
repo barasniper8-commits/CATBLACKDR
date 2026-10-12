@@ -74,7 +74,9 @@ jobs:
       - name: Sesuaikan Gambar Profil, Layar Kunci, dan Wallpaper
         run: |
           $themeDir = "C:\CustomTheme"
-          if (-not (Test-Path $themeDir)) { New-Item -ItemType Directory -Path$themeDir -Force | Out-Null }
+          if (-not (Test-Path $themeDir)) {
+              mkdir $themeDir -Force | Out-Null
+          }
 
           $avatarUrl    = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhmN4r8QQGWBuwdrDIE14cm92glQ6NGb20JY9-3fQ-fqBA4tMU5jCnqT-IGypusofrW6mHYJ4_SfTl0mehMAwKf1hI_rbDz_XUxRLfhQG0wZ_Zutv14soi931Rx1tR6bRafIaCp0oGpTc2dYShTbHJWHKbKrosZRMUwHG5i0wl25-f3B4wNZPT1nkdRdO0/s1600/1000184069.jpg"
           $lockUrl      = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhzLeo5tAdHA-WjC1GTIVPdb3PGFhDVyL8Ebvmu5scScHRI58C1WfxoxjXdLVgD6KodOiPkakz1HfmCcopdW0vmE158IP4HoykzwI8JnsdzT6aIMvBrHbm-XuhzTmawbyWreEDTupVbwNXqVfEgBFPoqP4ROGzVGHCZdQLd7yJCGXJe_dVKbwGQTAxWOng/s1600/1000186452.jpg"
@@ -90,7 +92,9 @@ jobs:
           Invoke-WebRequest -Uri $wallpaperUrl -OutFile$wallpaperPath -UseBasicParsing
 
           $personalizationReg = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
-          if (-not (Test-Path $personalizationReg)) { New-Item -Path$personalizationReg -Force | Out-Null }
+          if (-not (Test-Path $personalizationReg)) {
+              mkdir $personalizationReg -Force | Out-Null
+          }
           Set-ItemProperty -Path $personalizationReg -Name "LockScreenImage" -Value $lockPath -Force
           Set-ItemProperty -Path $personalizationReg -Name "DesktopImagePath" -Value $wallpaperPath -Force
 
