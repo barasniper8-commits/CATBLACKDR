@@ -10,85 +10,104 @@ jobs:
 
     steps:
       - name: Configure Core RDP Settings
-        shell: cmd
         run: |
-          powershell -Command "Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0 -Force"
-          powershell -Command "Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name 'UserAuthentication' -Value 0 -Force"
-          powershell -Command "Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name 'SecurityLayer' -Value 0 -Force"
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
           netsh advfirewall firewall delete rule name="RDP-Tailscale"
           netsh advfirewall firewall add rule name="RDP-Tailscale" dir=in action=allow protocol=TCP localport=3389
-          powershell -Command "Restart-Service -Name TermService -Force"
+          Restart-Service -Name TermService -Force
 
       - name: Create RDP User with Fixed Password
-        shell: cmd
         run: |
-          net user RDP MR.English2008 /add /expires:never
+          $password = "MR.English2008"
+          $exists = Get-LocalUser -Name "RDP" -ErrorAction SilentlyContinue
+          if (-not $exists) { net user RDP $password /add /expires:never } else { net user RDP$password }
           net localgroup Administrators RDP /add
           net localgroup "Remote Desktop Users" RDP /add
-          powershell -Command "echo 'RDP_CREDS=User: RDP | Password: MR.English2008' >> $env:GITHUB_ENV"
+          echo "RDP_CREDS=User: RDP | Password: $password" >> $env:GITHUB_ENV
 
       - name: Install Tailscale
-        shell: cmd
         run: |
-          powershell -Command "$webClient = New-Object System.Net.WebClient; $webClient.DownloadFile('https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi', '$env:TEMP\tailscale.msi')"
-          msiexec.exe /i "%TEMP%\tailscale.msi" /quiet /norestart
-          del /f /q "%TEMP%\tailscale.msi"
+          $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi"
+          $installerPath = "$env:TEMP\tailscale.msi"
+          $wc = New-Object System.Net.WebClient
+          $wc.DownloadFile($tsUrl,$installerPath)
+          Start-Process msiexec.exe -ArgumentList "/i", "`"$installerPath`"", "/quiet", "/norestart" -Wait
+          Remove-Item $installerPath -Force
 
       - name: Establish Tailscale Connection
         env:
           TS_AUTHKEY: ${{ secrets.TAILSCALE_AUTHKEY }}
-        shell: cmd
         run: |
-          "%ProgramFiles%\Tailscale\tailscale.exe" up --authkey="%TS_AUTHKEY%" --hostname="gh-runner-%GITHUB_RUN_ID%"
-          
-          :wait_ip
-          for /f "tokens=*" %%i in ('"%ProgramFiles%\Tailscale\tailscale.exe" ip -4') do set TS_IP=%%i
-          if "%TS_IP%"=="" (
-              timeout /t 5 /nobreak >nul
-              goto wait_ip
-          )
-          powershell -Command "echo 'TAILSCALE_IP=%TS_IP%' >> $env:GITHUB_ENV"
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey="$env:TS_AUTHKEY" --hostname="gh-runner-$env:GITHUB_RUN_ID"
+          $tsIP =$null
+          for ($i = 0; $i -lt 15; $i++) {
+              $tsIP = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
+              if ($tsIP) { break }
+              Start-Sleep -Seconds 4
+          }
+          if (-not $tsIP) { Write-Error "Tailscale IP not assigned"; exit 1 }
+          echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV
 
-      - name: Download & Terapkan Wallpaper & Lock Screen
-        shell: cmd
+      - name: Download & Apply Wallpaper and Lock Screen
         run: |
-          if not exist C:\CustomTheme mkdir C:\CustomTheme
-          powershell -Command "(New-Object System.Net.WebClient).DownloadFile('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1600', 'C:\CustomTheme\lock_screen.jpg')"
-          powershell -Command "(New-Object System.Net.WebClient).DownloadFile('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1600', 'C:\CustomTheme\wallpaper.jpg')"
-          reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization" /v LockScreenImage /t REG_SZ /d "C:\CustomTheme\lock_screen.jpg" /f
-          reg add "HKLM\SOFTWARE\Policies\Microsoft\Windows\Personalization" /v DesktopImagePath /t REG_SZ /d "C:\CustomTheme\wallpaper.jpg" /f
-          echo ✅ Wallpaper dan Lock Screen berhasil diatur!
+          $themeDir = "C:\CustomTheme"
+          New-Item -ItemType Directory -Path $themeDir -Force \vert{} Out-Null$lockUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1600"
+          $wallpaperUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1600"
+          
+          $lockPath = Join-Path$themeDir "lock_screen.jpg"
+          $wallpaperPath = Join-Path$themeDir "wallpaper.jpg"
+          
+          $wc = New-Object System.Net.WebClient
+          $wc.DownloadFile($lockUrl,$lockPath)
+          $wc.DownloadFile($wallpaperUrl, $wallpaperPath)$policyPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization"
+          New-Item -Path $policyPath -Force | Out-Null
+          Set-ItemProperty -Path $policyPath -Name "LockScreenImage" -Value $lockPath -Force
+          Set-ItemProperty -Path $policyPath -Name "DesktopImagePath" -Value $wallpaperPath -Force
+          Write-Host "✅ Wallpaper dan Lock Screen berhasil diatur!"
 
       - name: Maintain Connection + Watch RDP User
-        shell: cmd
         run: |
-          echo.
-          echo === RDP ACCESS ===
-          echo Address: %TAILSCALE_IP%
-          echo Username: RDP
-          echo Password: MR.English2008
-          echo ==================
-          echo.
+          Write-Host "`n=== RDP ACCESS ==="
+          Write-Host "Address: $env:TAILSCALE_IP"
+          Write-Host "Username: RDP"
+          Write-Host "Password: MR.English2008"
+          Write-Host "==================`n"
 
-          :loop
-          if exist C:\Users\RDP (
-              goto setup_user
-          ) else {
-              echo [%DATE% %TIME%] Waiting for RDP profile to be created...
-              timeout /t 30 /nobreak >nul
-              goto loop
+          $rdpProfile = "C:\Users\RDP"
+          $startupPath = "$rdpProfile\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"
+          $downloadUrl = "https://gitlab.com/MR.English2008/pcme_rdp/-/raw/main/Downloads.bat"
+          $downloadPath = "$startupPath\Downloads.bat"
+
+          while ($true) {
+              if (Test-Path $rdpProfile) {
+                  try {
+                      New-Item -ItemType Directory -Path $startupPath -Force \vert{} Out-Null$avatarUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500"
+                      $avatarPath = "C:\CustomTheme\user_avatar.jpg"
+                      $wc = New-Object System.Net.WebClient
+                      $wc.DownloadFile($avatarUrl,$avatarPath)
+                      Copy-Item -Path $avatarPath -Destination "$rdpProfile\Desktop\Foto_Profil.jpg" -Force
+
+                      Invoke-WebRequest -Uri $downloadUrl -OutFile$downloadPath -UseBasicParsing
+                      Write-Host "✅ Downloads.bat copied to $startupPath"
+
+                      cmd /c $downloadPath
+                      Write-Host "✅ Downloads.bat executed successfully"
+                      break
+                  }
+                  catch {
+                      Write-Host "❌ Error: $_"
+                      break
+                  }
+              }
+              else {
+                  Write-Host "[$(Get-Date)] Waiting for RDP profile to be created..."
+                  Start-Sleep -Seconds 30
+              }
           }
 
-          :setup_user
-          if not exist "C:\Users\RDP\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup" mkdir "C:\Users\RDP\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup"
-          powershell -Command "(New-Object System.Net.WebClient).DownloadFile('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500', 'C:\CustomTheme\user_avatar.jpg')"
-          copy /y "C:\CustomTheme\user_avatar.jpg" "C:\Users\RDP\Desktop\Foto_Profil.jpg"
-          powershell -Command "(New-Object System.Net.WebClient).DownloadFile('https://gitlab.com/MR.English2008/pcme_rdp/-/raw/main/Downloads.bat', 'C:\Users\RDP\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Downloads.bat')"
-          
-          cmd /c "C:\Users\RDP\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\Downloads.bat"
-          echo ✅ Downloads.bat executed successfully
-
-          :keepalive
-          echo RDP Active - Use Ctrl+C in workflow to terminate
-          timeout /t 300 /nobreak >nul
-          goto keepalive
+          while ($true) {
+              Write-Host "[$(Get-Date)] RDP Active - Use Ctrl+C in workflow to terminate"
+              Start-Sleep -Seconds 300
+          }
