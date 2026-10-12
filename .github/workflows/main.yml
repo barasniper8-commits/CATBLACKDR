@@ -1,12 +1,7 @@
-name: win 11 + tailscale + Download.bat script 
+Name: win 11 + tailscale + Download.bat script 
 
 on:
   workflow_dispatch:
-    inputs:
-      passcode:
-        description: 'Masukkan Passcode'
-        required: true
-        type: string
 
 jobs:
   secure-rdp:
@@ -14,33 +9,6 @@ jobs:
     timeout-minutes: 350
 
     steps:
-      - name: Verify Passcode from External HTML Page
-        run: |
-          $inputPasscode = "${{ github.event.inputs.passcode }}".Trim()
-          
-          Write-Host "Mengambil data passcode dari halaman: https://arianto12.lynk.id/p/ganjeng"
-          try {
-              $response = Invoke-WebRequest -Uri "https://arianto12.lynk.id/p/sdp" -UseBasicParsing -UserAgent "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
-              $htmlContent =$response.Content
-
-              if ([string]::IsNullOrWhiteSpace($inputPasscode)) {
-                  Write-Error "❌ Passcode input tidak boleh kosong!"
-                  exit 1
-              }
-
-              if ($htmlContent -like "*$inputPasscode*") {
-                  Write-Host "✅ Passcode valid! Akses diterima, melanjutkan proses..."
-              } else {
-                  Write-Error "❌ Passcode salah atau tidak cocok dengan halaman HTML! Workflow dihentikan."
-                  exit 1
-              }
-          }
-          catch {
-              $errMsg =$_.Exception.Message
-              Write-Error "❌ Gagal mengakses halaman HTML passcode: $errMsg"
-              exit 1
-          }
-
       - name: Configure Core RDP Settings
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
