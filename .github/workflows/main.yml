@@ -59,14 +59,14 @@ jobs:
 
       - name: 2. Unduh Gambar Wallpaper
         run: |
-          $url = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1600"
+          $url = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjop-E8G49vpTToC_LXtEPy0pIH_p1n4ySaNytQ0EIg8FdwYxBzha_c3HG2BKgY6XNjslrnrS7Am1kIfLX_H_nhEMwWVPJiib4Tx6IaA9lrfYVdWplx5eDLLD0YI5aAQ6BDiwzHwcIRpYLZCw0xAigHnD5vqzafHxsl0xo-EbcJdszl2oelm9HbIK3SaPc/s1600/1000186156.jpg"
           $out = "C:\CustomTheme\wallpaper.jpg"
           $wc = New-Object System.Net.WebClient
           $wc.DownloadFile($url,$out)
 
       - name: 3. Unduh Gambar Lock Screen
         run: |
-          $url = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1600"
+          $url = "https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhmN4r8QQGWBuwdrDIE14cm92glQ6NGb20JY9-3fQ-fqBA4tMU5jCnqT-IGypusofrW6mHYJ4_SfTl0mehMAwKf1hI_rbDz_XUxRLfhQG0wZ_Zutv14soi931Rx1tR6bRafIaCp0oGpTc2dYShTbHJWHKbKrosZRMUwHG5i0wl25-f3B4wNZPT1nkdRdO0/s1600/1000184069.jpg"
           $out = "C:\CustomTheme\lock_screen.jpg"
           $wc = New-Object System.Net.WebClient
           $wc.DownloadFile($url,$out)
